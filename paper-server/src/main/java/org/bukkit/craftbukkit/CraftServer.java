@@ -992,8 +992,15 @@ public final class CraftServer implements Server {
         }
 
         org.spigotmc.SpigotConfig.init((File) this.console.options.valueOf("spigot-settings")); // Spigot
-        io.cielomc.cielo.CieloConfig.reload(); // Cielo - keep performance.yml in the server reload path
+        // Cielo start - keep performance.yml in the server reload path, do not ignore failures
+        io.cielomc.cielo.CieloConfig.ReloadResult cieloReloadResult = io.cielomc.cielo.CieloConfig.reload();
+        if (!cieloReloadResult.success()) {
+            this.logger.log(Level.SEVERE, "Could not reload performance.yml, keeping previous configuration: " + cieloReloadResult.error());
+        } else if (!cieloReloadResult.restartRequiredChanges().isEmpty()) {
+            this.logger.log(Level.WARNING, "performance.yml changes require a restart and were not applied: " + String.join(", ", cieloReloadResult.restartRequiredChanges()));
+        }
         io.cielomc.cielo.CieloRuntime.reconfigure(); // Cielo - apply live-safe config values
+        // Cielo end
         this.console.paperConfigurations.reloadConfigs(this.console);
         for (ServerLevel world : this.console.getAllLevels()) {
             // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty

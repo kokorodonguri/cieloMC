@@ -51,7 +51,7 @@ The initial performance configuration is generated as:
 performance.yml
 ```
 
-Use OP-only performance commands:
+Use OP-only performance commands (permission node `cielo.command.perf`, default OP):
 
 ```text
 /perf status
@@ -60,6 +60,7 @@ Use OP-only performance commands:
 /perf queues
 /perf fallback
 /perf regions
+/perf recover <all|region <worldKey>:<x>,<z>>
 ```
 
 ## Configuration
@@ -79,6 +80,13 @@ Important initial settings:
 - `performance.dimensions.*`: dimension worker share policy.
 
 `/perf reload` keeps the previous valid configuration if validation fails.
+An invalid `performance.yml` at startup falls back to built-in defaults; the
+server always boots.
+
+Restart-required settings are detected on reload: the previous value stays
+live and the deferred paths are reported. See
+[docs/PERFORMANCE_CONFIG.md](docs/PERFORMANCE_CONFIG.md) for the full
+reference.
 
 Live reload target:
 
@@ -91,14 +99,16 @@ Live reload target:
 - dimension priorities
 - debug/status display
 
-Restart-required target:
+Restart-required target (detected and deferred on reload):
 
-- region size
-- virtual sub-region cell size
-- worker pool implementation
-- chunk/entity parallel enabled toggles
-- major save mode changes
-- scheduler implementation changes
+- `performance.region.size`
+- `performance.region.virtual-sub-region.cell-size-blocks`
+- `performance.scheduler.mode`
+- `performance.chunk.generation.enabled`
+- `performance.entity.enabled`
+- `performance.entity.parallel-types.hostile-mobs`
+- `performance.entity.parallel-types.items`
+- `performance.save.mode`
 
 ## Roadmap
 
@@ -134,7 +144,12 @@ Current structure:
 - `RegionId`: maps chunks to configurable base regions.
 - `RegionManager`: tracks fallback regions.
 - `RegionScheduler`: empty scheduler foundation with status snapshots.
-- `PerfCommand`: OP-only `/perf` command.
+- `PerfCommand`: `/perf` command (permission `cielo.command.perf`, default OP).
+
+More detail: [docs/DESIGN.md](docs/DESIGN.md),
+[docs/ROADMAP.md](docs/ROADMAP.md),
+[docs/PERFORMANCE_CONFIG.md](docs/PERFORMANCE_CONFIG.md), and
+[AGENTS.md](AGENTS.md) for contribution rules.
 
 Scheduler design:
 

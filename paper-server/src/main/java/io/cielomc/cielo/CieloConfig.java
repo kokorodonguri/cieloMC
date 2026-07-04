@@ -1,14 +1,14 @@
 package io.cielomc.cielo;
 
-import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -134,8 +134,9 @@ public final class CieloConfig {
         CieloConfig.writeDefaultConfigIfMissing();
         ReloadResult result = CieloConfig.reload();
         if (!result.success()) {
-            Bukkit.getLogger().log(Level.SEVERE, "Could not load performance.yml: {0}", result.error());
-            throw Throwables.propagate(new IllegalStateException(result.error()));
+            // Invalid performance.yml must not prevent the server from booting: fall back to built-in defaults.
+            LOGGER.log(Level.SEVERE, "Could not load performance.yml, using built-in defaults: " + result.error());
+            CieloConfig.current = Values.defaults();
         }
     }
 
@@ -161,8 +162,13 @@ public final class CieloConfig {
         try {
             config.load(CieloConfig.configFile);
             Values parsed = Values.from(config);
-            CieloConfig.current = parsed;
-            return ReloadResult.success(parsed);
+            Values previous = CieloConfig.current;
+            List<String> restartRequired = previous == null ? List.of() : detectRestartRequiredChanges(previous, parsed);
+            // Restart-required settings keep their previous live value; the new file value only
+            // takes effect on the next boot. This keeps future worker pools consistent with config.
+            Values effective = restartRequired.isEmpty() ? parsed : keepRestartRequired(previous, parsed);
+            CieloConfig.current = effective;
+            return ReloadResult.success(effective, restartRequired);
         } catch (IOException ex) {
             return ReloadResult.failure("Could not read performance.yml: " + ex.getMessage());
         } catch (InvalidConfigurationException ex) {
@@ -179,19 +185,117 @@ public final class CieloConfig {
         try {
             Files.writeString(CieloConfig.configFile.toPath(), TEMPLATE, StandardCharsets.UTF_8);
         } catch (IOException ex) {
+            // Do not abort startup; reload() will fail to read the file and fall back to defaults.
             LOGGER.log(Level.SEVERE, "Could not create performance.yml", ex);
-            throw Throwables.propagate(ex);
         }
     }
 
-    public record ReloadResult(boolean success, Values values, String error) {
+    /**
+     * Settings that back long-lived runtime structures (region layout, worker pools, save pipeline).
+     * Changing them via reload is detected and deferred until the next restart.
+     */
+    private static List<String> detectRestartRequiredChanges(final Values previous, final Values parsed) {
+        final List<String> changes = new ArrayList<>();
+        if (previous.regionSize() != parsed.regionSize()) {
+            changes.add("performance.region.size");
+        }
+        if (previous.virtualSubRegionCellSizeBlocks() != parsed.virtualSubRegionCellSizeBlocks()) {
+            changes.add("performance.region.virtual-sub-region.cell-size-blocks");
+        }
+        if (!previous.schedulerMode().equals(parsed.schedulerMode())) {
+            changes.add("performance.scheduler.mode");
+        }
+        if (previous.chunkGenerationEnabled() != parsed.chunkGenerationEnabled()) {
+            changes.add("performance.chunk.generation.enabled");
+        }
+        if (previous.entityEnabled() != parsed.entityEnabled()) {
+            changes.add("performance.entity.enabled");
+        }
+        if (previous.hostileMobsParallel() != parsed.hostileMobsParallel()) {
+            changes.add("performance.entity.parallel-types.hostile-mobs");
+        }
+        if (previous.itemsParallel() != parsed.itemsParallel()) {
+            changes.add("performance.entity.parallel-types.items");
+        }
+        if (!previous.saveMode().equals(parsed.saveMode())) {
+            changes.add("performance.save.mode");
+        }
+        return changes;
+    }
 
-        public static ReloadResult success(final Values values) {
-            return new ReloadResult(true, values, null);
+    private static Values keepRestartRequired(final Values previous, final Values parsed) {
+        return new Values(
+            previous.regionSize(),
+            parsed.autoSplitEnabled(),
+            parsed.splitEntityThreshold(),
+            parsed.splitTickTimeMs(),
+            parsed.splitApply(),
+            parsed.mergeEntityThreshold(),
+            parsed.mergeTickTimeMs(),
+            parsed.mergeStableDurationSeconds(),
+            parsed.virtualSubRegionEnabled(),
+            previous.virtualSubRegionCellSizeBlocks(),
+            parsed.virtualSubRegionDetectOnlyHeavyRegions(),
+            previous.schedulerMode(),
+            parsed.schedulerRescoreIntervalTicks(),
+            parsed.rescoreOnMsptSpike(),
+            parsed.rescoreOnFastPlayerMovement(),
+            previous.chunkGenerationEnabled(),
+            parsed.workerCpuRatio(),
+            parsed.generationLoadRatio(),
+            parsed.generationRatio(),
+            parsed.loadRatio(),
+            parsed.preloadEnabled(),
+            parsed.preloadShape(),
+            parsed.preloadExtraRadiusMin(),
+            parsed.preloadExtraRadiusMax(),
+            parsed.preloadPriority(),
+            parsed.commitMode(),
+            parsed.commitPriority(),
+            parsed.sendingPriority(),
+            parsed.sendingPerPlayerLimit(),
+            parsed.sendingGlobalLimit(),
+            previous.entityEnabled(),
+            previous.hostileMobsParallel(),
+            previous.itemsParallel(),
+            parsed.villagersParallel(),
+            parsed.hostileMobRegionWorkerTick(),
+            parsed.hostileMobVanillaLikeNearPlayers(),
+            parsed.hostileMobVanillaLikeSpecialMobs(),
+            parsed.distanceTiersEnabled(),
+            parsed.nearMaxBlockDistance(),
+            parsed.nearMode(),
+            parsed.midMaxBlockDistance(),
+            parsed.midAiInterval(),
+            parsed.midPathfindingInterval(),
+            parsed.farMinBlockDistance(),
+            parsed.farAiInterval(),
+            parsed.farPathfindingInterval(),
+            parsed.itemParallelTick(),
+            parsed.itemSpatialIndex(),
+            parsed.itemAggressiveMergeOnlyWhenHeavy(),
+            parsed.diskAware(),
+            parsed.targetStorage(),
+            previous.saveMode(),
+            parsed.saveIoControl(),
+            parsed.dimensionsMode(),
+            parsed.overworldMinShare(),
+            parsed.overworldBurstMax(),
+            parsed.netherMinShare(),
+            parsed.netherBurstMax(),
+            parsed.endMinShare(),
+            parsed.endBurstMax()
+        );
+    }
+
+    public record ReloadResult(boolean success, Values values, String error, List<String> restartRequiredChanges) {
+
+        public static ReloadResult success(final Values values, final List<String> restartRequiredChanges) {
+            return new ReloadResult(true, values, null, List.copyOf(restartRequiredChanges));
         }
 
         public static ReloadResult failure(final String error) {
-            return new ReloadResult(false, null, error);
+            return new ReloadResult(false, null, error, List.of());
         }
     }
 

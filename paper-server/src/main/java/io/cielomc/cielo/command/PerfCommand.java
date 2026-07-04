@@ -22,8 +22,8 @@ public final class PerfCommand extends Command {
     public PerfCommand(final String name) {
         super(name);
         this.description = "Cielo performance scheduler status and controls";
-        this.usageMessage = "/perf <status|reload|workers|queues|fallback|regions>";
-        this.setPermission("cielo.command.perf");
+        this.usageMessage = "/perf <status|reload|workers|queues|fallback|regions|recover>";
+        this.setPermission(CieloCommands.PERF_PERMISSION);
     }
 
     @Override
@@ -51,7 +51,7 @@ public final class PerfCommand extends Command {
 
     @Override
     public List<String> tabComplete(final CommandSender sender, final String alias, final String[] args, final Location location) {
-        if (!sender.hasPermission("cielo.command.perf")) {
+        if (!sender.hasPermission(CieloCommands.PERF_PERMISSION)) {
             return Collections.emptyList();
         }
         if (args.length == 1) {
@@ -75,6 +75,12 @@ public final class PerfCommand extends Command {
             return;
         }
         CieloRuntime.reconfigure();
+        if (!result.restartRequiredChanges().isEmpty()) {
+            sender.sendMessage("These settings require a restart and keep their previous values for now:");
+            for (String path : result.restartRequiredChanges()) {
+                sender.sendMessage("  " + path);
+            }
+        }
         sender.sendMessage("/perf reload complete");
     }
 
@@ -173,8 +179,9 @@ public final class PerfCommand extends Command {
 
     private double averageMspt1m() {
         MinecraftServer server = MinecraftServer.getServer();
-        TickData.TickReportData reportData = server.tickTimes1m.generateTickReport(null, System.nanoTime(), server.tickRateManager().nanosecondsPerTick());
-        return reportData == null ? 0.0D : reportData.timePerTickData().segmentAll().average() * 1.0E-6D;
+        // getMSPTData is a single O(n) pass; generateTickReport would also sort and compute percentiles.
+        TickData.MSPTData msptData = server.tickTimes1m.getMSPTData(null, server.tickRateManager().nanosecondsPerTick());
+        return msptData == null ? 0.0D : msptData.avg();
     }
 
     private static String enabled(final boolean enabled) {
