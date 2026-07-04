@@ -200,6 +200,9 @@ public class Main {
 
                 System.setProperty("library.jansi.version", "Paper"); // Paper - set meaningless jansi version to prevent git builds from crashing on Windows
                 System.setProperty("jdk.console", "java.base"); // Paper - revert default console provider back to java.base so we can have our own jline
+                if (options.has("initSettings")) {
+                    io.cielomc.cielo.CieloConfig.initSettings(); // Cielo - generate performance.yml with other initial settings
+                }
 
                 io.papermc.paper.PaperBootstrap.boot(options);
             } catch (Throwable t) {

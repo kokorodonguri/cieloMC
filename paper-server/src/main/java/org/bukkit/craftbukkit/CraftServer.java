@@ -483,6 +483,8 @@ public final class CraftServer implements Server {
         this.potionBrewer = new io.papermc.paper.potion.PaperPotionBrewer(console); // Paper - custom potion mixes
         datapackManager = new io.papermc.paper.datapack.PaperDatapackManager(console.getPackRepository()); // Paper
         this.spark = new io.papermc.paper.SparksFly(this); // Paper - spark
+        io.cielomc.cielo.CieloConfig.init(); // Cielo - performance.yml
+        io.cielomc.cielo.CieloRuntime.init(); // Cielo - empty region scheduler foundation
     }
 
     public boolean getCommandBlockOverride(String command) {
@@ -585,6 +587,7 @@ public final class CraftServer implements Server {
             this.helpMap.clear();
             this.helpMap.initializeGeneralTopics();
             if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.loadPermissionsYmlBeforePlugins) loadCustomPermissions(); // Paper
+            io.cielomc.cielo.command.CieloCommands.registerCommands(this.console); // Cielo - /perf
         }
 
         Plugin[] plugins = this.pluginManager.getPlugins();
@@ -989,6 +992,8 @@ public final class CraftServer implements Server {
         }
 
         org.spigotmc.SpigotConfig.init((File) this.console.options.valueOf("spigot-settings")); // Spigot
+        io.cielomc.cielo.CieloConfig.reload(); // Cielo - keep performance.yml in the server reload path
+        io.cielomc.cielo.CieloRuntime.reconfigure(); // Cielo - apply live-safe config values
         this.console.paperConfigurations.reloadConfigs(this.console);
         for (ServerLevel world : this.console.getAllLevels()) {
             // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
@@ -1021,6 +1026,7 @@ public final class CraftServer implements Server {
         this.reloadData();
         org.spigotmc.SpigotConfig.registerCommands(); // Spigot
         io.papermc.paper.command.PaperCommands.registerCommands(this.console); // Paper
+        io.cielomc.cielo.command.CieloCommands.registerCommands(this.console); // Cielo - /perf
         this.spark.registerCommandBeforePlugins(this); // Paper - spark
         this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
         this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");

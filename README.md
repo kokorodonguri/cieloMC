@@ -1,103 +1,162 @@
-Paper [![Version](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fartifactory.papermc.io%2Fartifactory%2Funiverse%2Fio%2Fpapermc%2Fpaper%2Fpaper-api%2Fmaven-metadata.xml&strategy=highestVersion&filter=26.1*&label=version&color=%23344ceb
-)](https://papermc.io/downloads/paper)
-[![Paper Build Status](https://img.shields.io/github/actions/workflow/status/PaperMC/Paper/build.yml?branch=main)](https://github.com/PaperMC/Paper/actions)
-[![Discord](https://img.shields.io/discord/289587909051416579.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/papermc)
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/papermc?label=GitHub%20Sponsors)](https://github.com/sponsors/PaperMC)
-[![Open Collective](https://img.shields.io/opencollective/all/papermc?label=OpenCollective%20Sponsors)](https://opencollective.com/papermc)
-===========
+# CieloMC
 
-The most widely used, high-performance Minecraft server that aims to fix gameplay and mechanics inconsistencies.
+CieloMC
+A survival-workload optimized Paper fork with a parallel region scheduler.
 
+CieloMC is a high-performance Paper fork optimized for heavy survival servers: mob farms, item-heavy storage pipelines, resource-world exploration, elytra chunk loading, and high entity counts.
 
-**Support and Project Discussion:**
-- [Our forums](https://forums.papermc.io/) or [Discord](https://discord.gg/papermc)
+CieloMC is experimental.
+It is not a drop-in replacement for Paper yet.
+The first goal is performance for heavy survival workloads.
 
-How To (Server Admins)
-------
-Paperclip is a jar file that you can download and run just like a normal jar file.
+CieloMC is based on Paper, but plugin compatibility is not guaranteed.
 
-Download Paper from our [downloads page](https://papermc.io/downloads/paper).
+Plugins that depend heavily on synchronous world, entity, or chunk behavior may not work correctly.
 
-Run the Paperclip jar directly from your server. Just like old times
+## Features
 
-* Documentation on using Paper: [docs.papermc.io](https://docs.papermc.io)
-* For a sneak peek at upcoming features, [see here](https://github.com/PaperMC/Paper/projects)
+- Fast chunk generation and loading foundation
+- Score-based region scheduler foundation
+- Separate generation, load, save, commit, and sending queue model
+- Hostile mob and item entity parallel tick roadmap
+- Dynamic worker control roadmap
+- `/perf status`
+- `performance.yml`
 
-How To (Plugin Developers)
-------
-* See our API [here](paper-api)
-* See upcoming, pending, and recently added API [here](https://github.com/orgs/PaperMC/projects/2/views/4)
-* Paper API javadocs here: [papermc.io/javadocs](https://papermc.io/javadocs/)
-#### Repository (for paper-api)
-See [the docs](https://docs.papermc.io/paper/dev/project-setup/#adding-paper-as-a-dependency) for more details.
-##### Gradle
-```kotlin
-repositories {
-    maven {
-        url = uri("https://repo.papermc.io/repository/maven-public/")
-    }
-}
+## Status
 
-dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
-}
+- Experimental
+- Based on Paper
+- Plugin compatibility is not guaranteed
+- Survival workload focused
+- Villager, POI, bed, job-site, trade, and iron golem behavior is not optimized in the MVP
 
-java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
-}
-```
-##### Maven
+## Quick Start
 
-```xml
-<repository>
-    <id>papermc</id>
-    <url>https://repo.papermc.io/repository/maven-public/</url>
-</repository>
+Build:
+
+```bash
+./gradlew createPaperclipJar
 ```
 
-```xml
-<dependency>
-    <groupId>io.papermc.paper</groupId>
-    <artifactId>paper-api</artifactId>
-    <version>[26.1.2.build,)</version>
-    <scope>provided</scope>
-</dependency>
+Run:
+
+```bash
+java -jar paper-server/build/libs/paper-paperclip-*.jar nogui
 ```
 
-How To (Compiling Jar From Source)
-------
-To compile Paper, you need JDK 25 and an internet connection.
+The initial performance configuration is generated as:
 
-Clone this repo, run `./gradlew applyPatches`, then `./gradlew createPaperclipJar` from your terminal. You can find the compiled jar in the `paper-server/build/libs` directory.
+```text
+performance.yml
+```
 
-To get a full list of tasks, run `./gradlew tasks`.
+Use OP-only performance commands:
 
-How To (Pull Request)
-------
-See [Contributing](CONTRIBUTING.md)
+```text
+/perf status
+/perf reload
+/perf workers
+/perf queues
+/perf fallback
+/perf regions
+```
 
-Old Versions (1.21.3 and below)
-------
-For branches of versions 1.8-1.21.3, please see our [archive repository](https://github.com/PaperMC/Paper-archive).
+## Configuration
 
-Support Us
-------
-First of all, thank you for considering helping out, we really appreciate that!
+`performance.yml` controls Cielo's experimental performance systems.
 
-PaperMC has various recurring expenses, mostly related to infrastructure. Paper uses [Open Collective](https://opencollective.com/) via the [Open Source Collective fiscal host](https://opencollective.com/opensource) to manage expenses. Open Collective allows us to be extremely transparent, so you can always see how your donations are used. You can read more about financially supporting PaperMC [on our website](https://papermc.io/sponsors).
+Important initial settings:
 
-You can find our collective [here](https://opencollective.com/papermc), or you can donate via GitHub Sponsors [here](https://github.com/sponsors/PaperMC), which will also go towards the collective.
+- `performance.region.size`: base region size in chunks. The default is `4`, meaning `4x4` chunks.
+- `performance.scheduler.mode`: score-based region scheduling mode.
+- `performance.chunk.generation.worker-cpu-ratio`: target worker count as a CPU ratio. The default is `0.5`.
+- `performance.chunk.generation.generation-load-ratio`: default generation/load worker split. The default is `7:3`.
+- `performance.chunk.preload.extra-radius-min` and `extra-radius-max`: preload radius controls for exploration.
+- `performance.entity.parallel-types.hostile-mobs`: hostile mob parallel tick target.
+- `performance.entity.parallel-types.items`: item entity parallel tick target.
+- `performance.entity.parallel-types.villagers`: always disabled in the MVP.
+- `performance.dimensions.*`: dimension worker share policy.
 
-Special Thanks To:
--------------
+`/perf reload` keeps the previous valid configuration if validation fails.
 
-[![YourKit-Logo](https://www.yourkit.com/images/yklogo.png)](https://www.yourkit.com/)
+Live reload target:
 
-[YourKit](https://www.yourkit.com/), makers of the outstanding java profiler, support open source projects of all kinds with their full featured [Java](https://www.yourkit.com/java/profiler) and [.NET](https://www.yourkit.com/.net/profiler) application profilers. We thank them for granting Paper an OSS license so that we can make our software the best it can be.
+- MSPT thresholds
+- worker limits
+- generation/load ratio
+- preload radius
+- sending limits
+- save control thresholds
+- dimension priorities
+- debug/status display
 
-[<img src="https://user-images.githubusercontent.com/21148213/121807008-8ffc6700-cc52-11eb-96a7-2f6f260f8fda.png" alt="" width="150">](https://www.jetbrains.com)
+Restart-required target:
 
-[JetBrains](https://www.jetbrains.com/), creators of the IntelliJ IDEA, supports Paper with one of their [Open Source Licenses](https://www.jetbrains.com/opensource/). IntelliJ IDEA is the recommended IDE for working with Paper, and most of the Paper team uses it.
+- region size
+- virtual sub-region cell size
+- worker pool implementation
+- chunk/entity parallel enabled toggles
+- major save mode changes
+- scheduler implementation changes
 
-All our sponsors!  
-[![Sponsor Image](https://raw.githubusercontent.com/PaperMC/papermc.io/data/sponsors.png)](https://papermc.io/sponsors)
+## Roadmap
+
+- Phase 0: Paper fork environment
+- Phase 1: README, `performance.yml`, `/perf status`
+- Phase 2: `RegionId`, `RegionManager`, `RegionScheduler` empty implementation
+- Phase 3: queue foundation for generation/load/save/commit/sending
+- Phase 4: chunk generation worker
+- Phase 5: chunk commit control
+- Phase 6: chunk sending priority control
+- Phase 7: IO monitoring and Save Queue control
+- Phase 8: dimension worker allocation
+- Phase 9: item entity parallel tick
+- Phase 10: hostile mob parallel tick
+- Phase 11: region-distributed spawn/despawn
+- Phase 12: fallback/recover
+- Phase 13: virtual sub-region
+- Phase 14: benchmark comparison
+- Phase 15: villager optimization review
+
+## For Developers
+
+Initial Cielo code lives under:
+
+```text
+paper-server/src/main/java/io/cielomc/cielo
+```
+
+Current structure:
+
+- `CieloConfig`: loads and validates `performance.yml` while preserving comments by avoiding unnecessary rewrites.
+- `CieloRuntime`: owns Cielo's early runtime singletons.
+- `RegionId`: maps chunks to configurable base regions.
+- `RegionManager`: tracks fallback regions.
+- `RegionScheduler`: empty scheduler foundation with status snapshots.
+- `PerfCommand`: OP-only `/perf` command.
+
+Scheduler design:
+
+- Common worker pool foundation
+- Score-based priorities instead of fixed priority levels
+- One task per region at a time in the MVP
+- Future task compatibility rules per task type
+- Starvation bonus for regions that wait too long
+
+Queue design:
+
+- Generation Queue
+- Load Queue
+- Save Queue
+- Commit Queue
+- Sending Queue
+
+Contribution direction:
+
+- Keep `main` bootable.
+- Do normal development on `dev`.
+- Keep phases small enough to review and build independently.
+- Do not change villager behavior in the MVP.
+- Mark unsafe or experimental behavior clearly in names or comments.
+- Prefer main-thread fallback for crash-prone integration points.
