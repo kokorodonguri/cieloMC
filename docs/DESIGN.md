@@ -13,9 +13,24 @@ Hooks into Paper internals are single lines marked with `// Cielo` comments:
 
 - `Main`: generates `performance.yml` during `--initSettings`.
 - `CraftServer` constructor: `CieloConfig.init()`, `CieloRuntime.init()`,
-  `/perf` registration.
+  `CieloViaBootstrap.init()`, and `/perf` registration.
 - `CraftServer.reload()`: reloads `performance.yml`; failures are logged and
   the previous valid configuration is kept.
+
+## Built-in ViaVersion and ViaBackwards
+
+Cielo starts ViaVersion and ViaBackwards protocol engines as internal runtime
+features under `io.cielomc.cielo.compat.via`; it does not install or load
+plugin jars. `CieloViaBootstrap` initializes `ViaManagerImpl` with a Cielo-owned
+`ViaPlatform` and ViaVersion's Paper/Bukkit Netty injector. ViaBackwards is
+registered through ViaVersion's enable listener path so its protocol mappings
+are added during ViaVersion startup.
+
+The built-in engines store config in `config/cielo/viaversion/` and
+`config/cielo/viabackwards/`. They can be disabled with
+`-Dcielo.disableBuiltInViaVersion=true` or
+`-Dcielo.disableBuiltInViaBackwards=true`, and each skips itself when a matching
+plugin jar exists to avoid double injection.
 
 ## Configuration lifecycle
 

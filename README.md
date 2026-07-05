@@ -22,6 +22,7 @@ Plugins that depend heavily on synchronous world, entity, or chunk behavior may 
 - Dynamic worker control roadmap
 - `/perf status`
 - `performance.yml`
+- Built-in ViaVersion and ViaBackwards protocol translation engines, without installing plugin jars
 
 ## Status
 
@@ -30,6 +31,7 @@ Plugins that depend heavily on synchronous world, entity, or chunk behavior may 
 - Plugin compatibility is not guaranteed
 - Survival workload focused
 - Villager, POI, bed, job-site, trade, and iron golem behavior is not optimized in the MVP
+- ViaVersion/ViaBackwards compatibility is embedded as a Cielo runtime feature, not loaded from `plugins/`
 
 ## Quick Start
 
@@ -66,6 +68,14 @@ Use OP-only performance commands (permission node `cielo.command.perf`, default 
 ## Configuration
 
 `performance.yml` controls Cielo's experimental performance systems.
+
+Cielo also starts built-in ViaVersion and ViaBackwards protocol translation
+engines. It does not install plugin jars. Config is written under
+`config/cielo/viaversion/` and `config/cielo/viabackwards/`. Use
+`-Dcielo.disableBuiltInViaVersion=true` or
+`-Dcielo.disableBuiltInViaBackwards=true` to turn them off. If matching
+`plugins/ViaVersion*.jar` or `plugins/ViaBackwards*.jar` files are present, the
+built-in engine skips itself to avoid double injection.
 
 Important initial settings:
 

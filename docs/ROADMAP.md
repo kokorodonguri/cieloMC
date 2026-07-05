@@ -8,6 +8,7 @@ a stock Paper server bootable.
 - **Phase 0**: Paper fork environment — done
 - **Phase 1**: README, `performance.yml`, `/perf status` — done
 - **Phase 2**: `RegionId`, `RegionManager`, `RegionScheduler` empty implementation — done
+- **Compatibility**: built-in ViaVersion/ViaBackwards protocol engines — initial integration
 - **Phase 3**: queue foundation for generation/load/save/commit/sending
 - **Phase 4**: chunk generation worker
 - **Phase 5**: chunk commit control

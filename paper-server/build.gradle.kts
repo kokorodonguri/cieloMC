@@ -18,6 +18,10 @@ dependencies {
     paperclip("io.papermc:paperclip:3.0.4")
 }
 
+repositories {
+    maven("https://repo.viaversion.com")
+}
+
 paperweight {
     minecraftVersion = providers.gradleProperty("mcVersion")
     gitFilePatches = false
@@ -157,6 +161,10 @@ dependencies {
     // Spark
     implementation("me.lucko:spark-api:0.1-20240720.200737-2")
     implementation("me.lucko:spark-paper:1.10.152")
+
+    // Cielo - built-in protocol translation engine. This is a server library, not a plugin jar.
+    implementation("com.viaversion:viaversion:5.10.0")
+    implementation("com.viaversion:viabackwards:5.10.0")
 }
 
 tasks.jar {

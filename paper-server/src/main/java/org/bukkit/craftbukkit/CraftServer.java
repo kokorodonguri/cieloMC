@@ -485,6 +485,7 @@ public final class CraftServer implements Server {
         this.spark = new io.papermc.paper.SparksFly(this); // Paper - spark
         io.cielomc.cielo.CieloConfig.init(); // Cielo - performance.yml
         io.cielomc.cielo.CieloRuntime.init(); // Cielo - empty region scheduler foundation
+        io.cielomc.cielo.compat.via.CieloViaBootstrap.init(this, this.getPluginsFolder()); // Cielo - built-in ViaVersion protocol engine
     }
 
     public boolean getCommandBlockOverride(String command) {

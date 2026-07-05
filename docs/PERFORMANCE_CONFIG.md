@@ -3,6 +3,13 @@
 `performance.yml` is generated with comments on first startup and never
 rewritten afterwards, so your comments survive upgrades.
 
+ViaVersion and ViaBackwards compatibility are built into Cielo separately from
+`performance.yml`. Their configs are generated under
+`config/cielo/viaversion/` and `config/cielo/viabackwards/`. Use
+`-Dcielo.disableBuiltInViaVersion=true` or
+`-Dcielo.disableBuiltInViaBackwards=true` to disable the embedded protocol
+engines.
+
 Invalid values never crash the server:
 
 - At startup, an invalid file logs SEVERE and built-in defaults are used.
